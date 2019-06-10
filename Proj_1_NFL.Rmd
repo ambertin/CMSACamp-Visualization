@@ -15,7 +15,7 @@ nfl <- read_csv("nfl_teams_season_summary.csv")
 nfl %>% mutate(division2 = substring(division, 1, 3)) -> nfl
 ```
 
-Theme: comparison of divisions AFC vs NFC
+Theme: Competitiveness
 
 Research Questions:
 
@@ -23,7 +23,30 @@ Research Questions:
 
 Group by division (keeping all 8)
 Compare w/ AFC vs NFC (not caring about N/S/E/W)
+
+```{r}
+afc <- c("AFC East", "AFC North", "AFC South", "AFC West")
+nfc <- c("NFC East", "NFC North", "NFC South", "NFC West")
+
+
+nfl <- nfl %>% mutate(div_general = ifelse(division %in% afc, "AFC", "NFC"))
+nfl <- nfl %>% mutate(region =
+                        ifelse(division %in% c("AFC East", "NFC East"), "East",
+                        ifelse(division %in% c("AFC North", "NFC North"), "North",
+                        ifelse(division %in% c("AFC South", "NFC South"), "South",
+                        "West"))))
+```
+
+```{r}
+nfl <- nfl %>% mutate(WLRatio = wins/losses)
+```
+
+```{r}
+nfl %>% ggplot(aes(x=WLRatio, col = region)) + geom_density() + facet_wrap(~div_general) + xlim(0,6)
+```
+
 Is the distribution of wins/losses tight or spread out?
+
 Pull out most competitive teams for each division over the years
 
 ```{r}
@@ -33,7 +56,7 @@ nfl %>%
     group_by(season, division2) %>%
     slice(which.max(wl_ratio)) %>%
     select(season, team, wl_ratio, division2) %>%
-    ggplot(aes(x = season, y = wl_ratio, color = division2)) + 
+    ggplot(aes(x = season, y = wl_ratio, color = division2)) +
         geom_line() +
         theme_bw()
 
@@ -57,7 +80,7 @@ nfl %>%
     filter(division2 == "AFC") %>%
     group_by(season, division) %>%
     summarize(total_wins = sum(wins), wl_ratio_avg = mean(wl_ratio)) %>%
-    ggplot(aes(x = season, y = total_wins)) + 
+    ggplot(aes(x = season, y = total_wins)) +
         geom_hline(yintercept=31) +
         geom_line(color="red") +
         ylim(21, 42) +
@@ -69,7 +92,7 @@ library(ggthemes)
 library(plotly)
 nfl %>%
     mutate(wl_ratio = wins/losses) %>%
-    ggplot(aes(x=wl_ratio, y=as.factor(season))) + 
+    ggplot(aes(x=wl_ratio, y=as.factor(season))) +
         geom_density_ridges() +
         xlim(-1, 5) +
         geom_vline(xintercept=1) +
@@ -78,20 +101,63 @@ nfl %>%
 grid.arrange(wins.nfc.plt, wins.afc.plt, nrow = 1)
 ```
 
+#nfl %>% group_by(div_general, team) %>%
+ # summarize(mean_WL = mean(WLRatio)) %>%
+#  arrange(desc(mean_WL)) %>%
+#  head(10)
+```
+
+```{r}
+#top10 <- c("NE", "GB", "CAR", "LA", "NO", "LAC", "PIT", "IND", "DEN", "ATL")
+```
+
+```{r}
+#topTeams <- nfl %>% filter(team %in% top10)
+```
+
+```{r}
+top_teams_by_year <- nfl %>%
+  group_by(season, div_general) %>%
+  select(season, team, WLRatio) %>% top_n(n=1)
+```
+
+```{r}
+ggplot(top_teams_by_year, aes(x=season, y=WLRatio, fill = team)) + geom_bar(stat = "identity", position = "dodge", col = "black") +
+  facet_wrap(~div_general) +
+  scale_fill_manual(breaks = c("ATL", "CAR", "CIN", "DAL", "DEN", "GB", "IND", "KC", "LA", "LAC", "MIN", "NE", "NO", "PHI", "PIT", "SEA"),
+                    values = c("darkred", "turquoise2", "darkorange2", "gray77", "black", "darkgreen", "darkblue", "red", "goldenrod2", "powderblue", "purple", "blue", "tan", "aquamarine4", "yellow", "chartreuse1"),
+                   labels = c("Atlanta Falcons", "Carolina Panthers", "Cincinnati Bengals", "Dallas Cowboys", "Denver Broncos", "Green Bay Packers", "Indianapolis Colts", "Kansas City Chiefs", "LA Rams", "LA Chargers", "Minnesota Vikings", "New England Patriots", "New Orleans Saints", "Philadelphia Eagles", "Pittsburgh Steelers", "Seattle Seahawks")) + theme_fivethirtyeight()
+```
 
 2. Which works better -- passing or running?
 
-Among the winningest teams in each division, how much do they pass vs run? (as a percentage of total yards) 
+Among the winningest teams in each division, how much do they pass vs run? (as a percentage of total yards)
 Wins vs passing yards
 Wins vs running yards
 
 ```{r}
-nfl %>% 
+nfl %>%
     mutate(total_yds = pass_off_total_yards_gained + run_off_total_yards_gained) %>%
     group_by(season, division2) %>%
     summarise(total_yards = sum(total_yds)) %>%
     ggplot(aes(x = season, y = total_yards, color = division2)) + geom_line() + geom_smooth(method = "lm", se = F)
 
+nfl_passrun <- nfl %>%
+  mutate(pass = pass_off_total_yards_gained/(pass_off_total_yards_gained + run_off_total_yards_gained), run = run_off_total_yards_gained/(pass_off_total_yards_gained + run_off_total_yards_gained))
+```
+
+```{r}
+nfl_passrun <- nfl_passrun %>% filter(team %in% top10) %>% select(team, season, pass, run)
+```
+
+```{r}
+nfl_passrun %>% gather(key = "type", value = "pct", pass, run) %>%
+  group_by(team) %>%
+  ggplot(aes(x=team, y=pct, fill = type)) + geom_bar(stat = "identity", position = "fill") + geom_hline(yintercept = 0.331)
+```
+
+```{r}
+ggplot(nfl, aes(x=run_off_total_yards_gained, y = wins, col = div_general)) + geom_point() + geom_smooth(method = "lm", se = F)
 ```
 
 
@@ -101,7 +167,3 @@ Look at a sample of the best teams and a sample of the worst teams.
 
 See how many passing/running yards the defense allows.
 Look at how many passing/running yards the offense makes.
-
-
-
-
