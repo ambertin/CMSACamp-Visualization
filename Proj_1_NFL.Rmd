@@ -1,0 +1,45 @@
+---
+title: "Project 1 - NFL Summary Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+library(readr)
+library(tidyverse)
+```
+
+```{r}
+# Read data
+nfl <- read_csv("nfl_teams_season_summary.csv")
+```
+
+Theme: comparison of divisions AFC vs NFC
+
+Research Questions:
+
+1. Are any of the divisions getting stronger/more competitive over time?
+
+Group by division (keeping all 8)
+Compare w/ AFC vs NFC (not caring about N/S/E/W)
+Is the distribution of wins/losses tight or spread out?
+Pull out most competitive teams for each division over the years
+
+
+2. Which works better -- passing or running?
+
+Among the winningest teams in each division, how much do they pass vs run? (as a percentage of total yards) 
+Wins vs passing yards
+Wins vs running yards
+
+
+3. Offensive vs defense importance for wins? Which is more impactful?
+
+Look at a sample of the best teams and a sample of the worst teams.
+
+See how many passing/running yards the defense allows.
+Look at how many passing/running yards the offense makes.
+
+
+
+
