@@ -49,10 +49,10 @@ Is the distribution of wins/losses tight or spread out?
 Pull out most competitive teams for each division over the years
 
 ```{r}
-#nfl %>% group_by(div_general, team) %>%
- # summarize(mean_WL = mean(WLRatio)) %>%
-#  arrange(desc(mean_WL)) %>%
-#  head(10)
+nfl %>% group_by(div_general, team) %>%
+  summarize(mean_WL = mean(WLRatio)) %>%
+  arrange(desc(mean_WL)) %>%
+  head(10)
 ```
 
 ```{r}
@@ -74,7 +74,7 @@ ggplot(top_teams_by_year, aes(x=season, y=WLRatio, fill = team)) + geom_bar(stat
   facet_wrap(~div_general) + 
   scale_fill_manual(breaks = c("ATL", "CAR", "CIN", "DAL", "DEN", "GB", "IND", "KC", "LA", "LAC", "MIN", "NE", "NO", "PHI", "PIT", "SEA"),
                     values = c("darkred", "turquoise2", "darkorange2", "gray77", "black", "darkgreen", "darkblue", "red", "goldenrod2", "powderblue", "purple", "blue", "tan", "aquamarine4", "yellow", "chartreuse1"), 
-                   labels = c("Atlanta Falcons", "Carolina Panthers", "Cincinnati Bengals", "Dallas Cowboys", "Denver Broncos", "Green Bay Packers", "Indianapolis Colts", "Kansas City Chiefs", "LA Rams", "LA Chargers", "Minnesota Vikings", "New England Patriots", "New Orleans Saints", "Philadelphia Eagles", "Pittsburgh Steelers", "Seattle Seahawks")) + theme_fivethirtyeight()
+                   labels = c("Atlanta Falcons", "Carolina Panthers", "Cincinnati Bengals", "Dallas Cowboys", "Denver Broncos", "Green Bay Packers", "Indianapolis Colts", "Kansas City Chiefs", "LA Rams", "LA Chargers", "Minnesota Vikings", "New England Patriots", "New Orleans Saints", "Philadelphia Eagles", "Pittsburgh Steelers", "Seattle Seahawks")) + theme(legend.position = "bottom") + labs(x = NULL, y = "Win / Loss Ratio", title = "The Best Performing NFL Teams", subtitle = "The AFC has more consistent top teams than NFC", fill = NULL) + scale_x_continuous(breaks = c(2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018), labels = c("'09", "'10", "'11", "'12", "'13", "'14", "'15", "'16", "'17", "'18"))
 ```
 
 2. Which works better -- passing or running?
@@ -96,7 +96,7 @@ nfl_passrun <- nfl_passrun %>% filter(team %in% top10) %>% select(team, season, 
 nfl_passrun %>% gather(key = "type", value = "pct", pass, run) %>%
   group_by(team, type) %>%
   summarize(pct = mean(pct)) %>%
-  ggplot(aes(x=team, y=pct, fill = type)) + geom_bar(stat = "identity", position = "fill") + geom_hline(yintercept = 0.331) + xlab(NULL) + ylab("% of Offensive Yards") + labs(title = "What Makes A Top Team? Running or Passing?", subtitle = "The most competitive teams play similarly to each other, but pass more than average")
+  ggplot(aes(x=team, y=pct, fill = type)) + geom_bar(stat = "identity", position = "fill") + geom_hline(yintercept = 0.331, linetype = "dashed") + xlab(NULL) + ylab("% of Offensive Yards") + labs(title = "What Makes A Top Team? Running or Passing?", subtitle = "The most competitive teams play similarly to each other, but pass more than average", fill = "Play Type")
 ```
 
 
@@ -125,23 +125,35 @@ nfl <- nfl %>% mutate(offense_strength = ifelse(avg_scored > 25, "High Scoring (
 nfl$offense_strength <- factor(nfl$offense_strength, levels = c("High Scoring (>25 Points Scored/Game)","Medium Scoring (>18)", "Low Scoring (<=18)"))
 nfl$defense_strength <- factor(nfl$defense_strength, levels = c("Strong (<18 Points Allowed/Game)", "Medium (<25)", "Weak (>=25)"))
 
-nfl %>% filter(season >= 2015) %>% ggplot(aes(x=point_ratio, y = WLRatio, col = offense_strength)) + geom_point(size = 2, alpha = 0.8) + facet_wrap(~defense_strength) + labs(x = "Points Scored / Points Allowed", y = "Win / Loss Ratio", title = "Offense and Defense Strength Since 2015", subtitle = "To win, you need a balance", col = "Offense Strength") + ylim(0, 5) + scale_color_manual(breaks = c("High Scoring (>25 Points Scored/Game)","Medium Scoring (>18)", "Low Scoring (<=18)"), values = c("green", "gold", "red")) + theme(legend.position = "bottom") + geom_hline(yintercept = 1, linetype = "dashed") + geom_vline(xintercept = 1.00, linetype = "dashed")
+nfl %>% ggplot(aes(x=point_ratio, y = WLRatio, col = offense_strength)) + geom_point(size = 2, alpha = 0.8) + facet_wrap(~defense_strength) + labs(x = "Points Scored / Points Allowed", y = "Win / Loss Ratio", title = "Offense and Defense Strength", subtitle = "To win, you need a balance", col = "Offense Strength") + ylim(0, 5) + scale_color_manual(breaks = c("High Scoring (>25 Points Scored/Game)","Medium Scoring (>18)", "Low Scoring (<=18)"), values = c("green", "gold", "red")) + theme(legend.position = "bottom") + geom_hline(yintercept = 1, linetype = "dashed") + geom_vline(xintercept = 1.00, linetype = "dashed")
+```
+
+```{r}
+nfl <- nfl %>% mutate(record = ifelse(WLRatio > 2, "Double Positive", ifelse(WLRatio >= 1, "Positive", "Negative")),
+                      total_offensive_gained = run_off_total_yards_gained + pass_off_total_yards_gained,
+                      total_defensive_allowed = run_def_total_yards_allowed + pass_def_total_yards_allowed)
+
+nfl$record <- factor(nfl$record, levels = c("Double Positive", "Positive", "Negative"))
+
+ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record)) + geom_point() + scale_color_manual(breaks = c("Double Positive", "Positive", "Negative"), values = c("green", "gold", "red")) + labs(title = "Offense and Defense Strength", subtitle = "Competitive teams are typically good at both", x = "Total Defensive Yards Allowed in Season", y = "Total Offensive Yards Gained in Season", col = "Win Record")
+```
+
+
+
+
+
+
+```{r}
+ggplot(nfl, aes(x=reorder(team, avg_scored, FUN = median), y = avg_scored, fill = div_general)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + xlab(NULL) + ylab("Avg Points Per Game") + labs(title = "The Top Teams Aren't Always Consistent", subtitle = "The NFL appears very competitive, with decent upset chances", fill = "Division")
+```
+
+
+```{r}
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + xlab(NULL) + ylab("Win / Loss Ratio") + labs(title = "The Top Teams Aren't Always Consistent", subtitle = "The NFL appears very competitive, with decent upset chances", fill = "Division") + geom_hline(yintercept = 1, linetype = "dashed", color = "red")
 ```
 
 
 
 ```{r}
-ggplot(nfl, aes(x=reorder(team, avg_scored, FUN = median), y = avg_scored, fill = div_general)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + xlab(NULL) + ylab("Avg Points Per Game") + labs(title = "The Top Teams Aren't Always Consistent", subtitle = "The NFL appears very competitive, with decent upset chances")
-```
-
-
-```{r}
-ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + xlab(NULL) + ylab("Win / Loss Ratio") + labs(title = "The Top Teams Aren't Always Consistent", subtitle = "The NFL appears very competitive, with decent upset chances") + geom_hline(yintercept = 1, linetype = "dashed", color = "red")
-```
-
-
-
-```{r}
-library(gghighlight)
-ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + xlab(NULL) + ylab("Win / Loss Ratio") + labs(title = "The Top Teams Aren't Always Consistent", subtitle = "The NFL appears very competitive, with decent upset chances") + geom_hline(yintercept = 1, linetype = "dashed", color = "red") + ylim(0,5)
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + xlab(NULL) + ylab("Win / Loss Ratio") + labs(title = "The Top Teams Aren't Always Consistent", subtitle = "The NFL appears very competitive, with decent upset chances", fill = "Division") + geom_hline(yintercept = 1, linetype = "dashed", color = "red") + ylim(0,5)
 ```
