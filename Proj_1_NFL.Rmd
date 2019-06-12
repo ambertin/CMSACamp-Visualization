@@ -51,14 +51,14 @@ Pull out most competitive teams for each division over the years
 
 ```{r}
 # Max win/loss ratio from each division
-nfl %>%
-    mutate(wl_ratio = wins/losses) %>%
-    group_by(season, division2) %>%
-    slice(which.max(wl_ratio)) %>%
-    select(season, team, wl_ratio, division2) %>%
-    ggplot(aes(x = season, y = wl_ratio, color = division2)) +
-        geom_line() +
-        theme_bw()
+#nfl %>%
+#    mutate(wl_ratio = wins/losses) %>%
+#    group_by(season, division2) %>%
+#    slice(which.max(wl_ratio)) %>%
+#    select(season, team, wl_ratio, division2) %>%
+#    ggplot(aes(x = season, y = wl_ratio, color = division2)) +
+#        geom_line() +
+#        theme_bw()
 
 library(gridExtra)
 # Total wins for each division
@@ -100,6 +100,19 @@ nfl %>%
 
 grid.arrange(wins.nfc.plt, wins.afc.plt, nrow = 1)
 ```
+
+```{r}
+library(ggridges)
+library(ggthemes)
+nfl %>%
+    mutate(wl_ratio = wins/losses) %>%
+    ggplot(aes(x=wl_ratio, y=as.factor(season), fill = div_general)) +
+        geom_density_ridges(alpha = 0.7) +
+        xlim(-1, 5) +
+        geom_vline(xintercept=1) +
+  labs(x = "Win / Loss Ratio", y = NULL, title = "Division Records Over Time", fill = "Division")
+```
+
 
 #nfl %>% group_by(div_general, team) %>%
  # summarize(mean_WL = mean(WLRatio)) %>%
