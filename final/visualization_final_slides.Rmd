@@ -8,20 +8,27 @@ output:
     incremental: true
 ---
 
-```{r, echo = FALSE}
+<!--
+TODO:
+  * Try log transformation for wlratio over time.
+  * Fix logos
+-->
+
+
+```{r, echo = FALSE, messages = FALSE, results='hide'}
 
 # LOAD LIBRARIES
-library(readr)
-library(tidyverse)
-library(gridExtra)
-library(ggridges)
-library(ggthemes)
-library(plotly)
-library(cowplot)
-library(magick)
+suppressMessages(library(readr))
+suppressMessages(library(tidyverse))
+suppressMessages(library(gridExtra))
+suppressMessages(library(ggridges))
+suppressMessages(library(ggthemes))
+suppressMessages(library(plotly))
+suppressMessages(library(cowplot))
+suppressMessages(library(magick))
 
 # LOAD DATA INTO FILE
-nfl <- read_csv("nfl_teams_season_summary.csv")
+suppressMessages(nfl <- read_csv("nfl_teams_season_summary.csv"))
 
 # MUTATE VARIABLES
 afc <- c("AFC East", "AFC North", "AFC South", "AFC West")
@@ -29,6 +36,12 @@ nfc <- c("NFC East", "NFC North", "NFC South", "NFC West")
 
 nfl <- nfl %>% mutate(div_general = ifelse(division %in% afc, "AFC", "NFC"))
 nfl <- nfl %>% mutate(WLRatio = wins/losses)
+
+nfl_passrun <- nfl %>%
+  mutate(pass = pass_off_total_yards_gained/(pass_off_total_yards_gained + run_off_total_yards_gained), run = run_off_total_yards_gained/(pass_off_total_yards_gained + run_off_total_yards_gained))
+
+top10 <- c("NE", "GB", "CAR", "LA", "NO", "LAC", "PIT", "IND", "DEN", "ATL")
+nfl_passrun <- nfl_passrun %>% filter(team %in% top10) %>% select(team, season, pass, run)
 ```
 
 
@@ -112,12 +125,24 @@ knitr::include_graphics("AFC-NFC.png")
 
 ***
 
-PLOT 1
+- There are some extreme outliers
+    - Green Bay and Carolina for the NFC
+    - Patriots for the AFC
+- But overall, not that much difference over time or difference between the divisions.
 
+```{r, echo = FALSE, message = FALSE, fig.height = 4}
+nfl %>%
+    ggplot(aes(x=WLRatio, y=as.factor(season), fill = div_general)) +
+        geom_density_ridges(alpha = 0.7) +
+        geom_vline(xintercept=1) +
+        labs(x = "Win / Loss Ratio", y = NULL, title = "Division Records Over Time", 
+             fill = "Division") +
+        theme_gray()
+```
 
 ***
 
-PLOT 2
+PLOT 2: TODO
 
 ***
 
@@ -131,7 +156,55 @@ PLOT 2
 
 ***
 
-PLOT
+## Graphing consistency
+
+- Notable outliers: Carolina, Green Bay, Indianapolis
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) +
+  geom_boxplot() +
+  theme_gray() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  xlab(NULL) +
+  ylab("Win / Loss Ratio") +
+  labs(
+    title = "The Top Teams Aren't Always Consistent",
+    subtitle = "The NFL appears very competitive, with decent upset chances",
+    fill = "Division") +
+  geom_hline(
+    yintercept = 1,
+    linetype = "dashed",
+    color = "red") -> p2
+
+ggplotly(p2)
+```
+
+***
+
+- A few teams that are consistently bad
+- Outliers + variation = chance for upsets
+- Divisions seem somewhat balanced in terms of skill
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) +
+  geom_boxplot() +
+  theme_gray() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  xlab(NULL) +
+  ylab("Win / Loss Ratio") +
+  labs(
+    title = "The Top Teams Aren't Always Consistent",
+    subtitle = "The NFL appears very competitive, with decent upset chances",
+    fill = "Division") +
+  geom_hline(
+    yintercept = 1,
+    linetype = "dashed",
+    color = "red") +
+  ylim(0,4.5) -> p2.2
+
+ggplotly(p2.2)
+
+```
 
 ***
 
@@ -149,7 +222,27 @@ knitr::include_graphics("running.jpeg")
 
 ***
 
-PLOT
+- The top teams pass slightly more than the league average
+    - Carolina's weird.
+- However, the deviations aren't that large. The league tends to earn about a third of its yards through running.
+    - Probably overall good for the "health" of the game; passing plays are more exciting and allow for bigger swings.
+
+```{r, echo = FALSE, message = FALSE, out.height = '80%'}
+nfl_passrun %>% gather(key = "type", value = "pct", pass, run) %>%
+  group_by(team, type) %>%
+  summarize(pct = mean(pct)) %>%
+  ggplot(aes(x=team, y=pct, fill = type)) + 
+    geom_bar(stat = "identity", position = "fill") + 
+    geom_hline(yintercept = 0.331, linetype = "dashed") + 
+    xlab(NULL) + 
+    ylab("% of Offensive Yards") + 
+    labs(title = "What Makes A Top Team? Running or Passing?", 
+         subtitle = "The most competitive teams play similarly to each other, but pass more than average", 
+         fill = "Play Type") +
+    theme_gray() -> p3
+
+ggplotly(p3)
+```
 
 ***
 
@@ -166,10 +259,63 @@ knitr::include_graphics("positions.png")
 
 ***
 
-PLOT
+-  There are very few teams that only have a good offense OR defense
+
+-  Teams that perform well appear to be good at both
+    - High scoring
+    - Don't allow many points
+    
+    
+```{r, echo = FALSE, message = FALSE, out.height = '80%'}
+
+library(plotly)
+nfl <- nfl %>% mutate(record = ifelse(WLRatio > 2, "Double Positive", ifelse(WLRatio >= 1, "Positive", ifelse(WLRatio >= 0.5, "Negative", "Double Negative"))),
+                      total_offensive_gained = run_off_total_yards_gained + pass_off_total_yards_gained,
+                      total_defensive_allowed = run_def_total_yards_allowed + pass_def_total_yards_allowed)
+
+nfl$record <- factor(nfl$record, levels = c("Double Positive", "Positive", "Negative", "Double Negative"))
+
+ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record, label = team)) + geom_point() + scale_color_manual(breaks = c("Double Positive", "Positive", "Negative", "Double Negative"), values = c("green", "gold", "darkorange1", "red")) + labs(x = "Total Defensive Yards Allowed in Season", y = "Total Offensive Yards Gained in Season", col = "Win Record") + theme(legend.position = "bottom") -> p
+ggplotly(p)
+```    
+
+***    
+- What separates a bad team from the worst teams?
+    - The *worst* teams have very poor offenses
+    - A good defense does not guarantee that a team is competitive
+    
+&nbsp;
+
+```{r, echo = FALSE, message = FALSE, out.height = '80%'}
+ggplotly(p)
+```
+
+
+
+***    
+
+- What separates a good team from a bad team?
+    - Worse *defensive* performance
+    - Offense is important, but you can't neglect your defense!
+    
+&nbsp;
+
+```{r, echo = FALSE, message = FALSE, out.height = '80%'}
+ggplotly(p)
+```
 
 ***
 
+- What separates a good team from a great team?
+    - Sometimes defensive improvement, sometimes offensive
+    - **Big Idea:** You can remain competitive with different styles of play!
+    
+&nbsp;
+
+```{r, echo = FALSE, message = FALSE, out.height = '80%'}
+
+ggplotly(p)
+```
 
 
 
@@ -178,9 +324,9 @@ PLOT
 
 - The NFL is very consistent, and has remained so over time
 - There are only a few teams that perform extraordinarily well
-    - These are not the same every time
+    - These are typically not the same every season (except New England of course...)
 - The best teams are not unbeatable
-    - Outliers show a chance for upsets
+    - Outliers and high variance show a chance for upsets
 - The best teams pass more than average, but teams that run more can also succeed
 - Different balances of offense and defense can lead to success. Not only one strategy!
 
@@ -195,6 +341,7 @@ PLOT
 - Only have data since 2009. Older data might look different.
 
 - In addition to win/loss, would have liked overall rank in season
+    - Also, as with offense/defense analysis, game level win/loss data could provide more insight into how teams match up.
 
 
 ***
@@ -203,6 +350,11 @@ PLOT
 
 - Can we determine the strength of the relationship between offense/defense and win probabilities?
     - Does one have a stronger mathematical relationship to chances of winning?
+    
+- How does game location (home vs. away) factor into competitiveness of the game?
+    - Are matches more interesting when the home team is better or worse?
+    
+- Do injuries lead to more or less competitive games?
 
 ***
 

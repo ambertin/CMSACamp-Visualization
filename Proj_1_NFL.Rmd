@@ -106,12 +106,13 @@ grid.arrange(wins.nfc.plt, wins.afc.plt, nrow = 1)
 library(ggridges)
 library(ggthemes)
 nfl %>%
-    mutate(wl_ratio = wins/losses) %>%
-    ggplot(aes(x=wl_ratio, y=as.factor(season), fill = div_general)) +
+    ggplot(aes(x=WLRatio, y=as.factor(season), fill = div_general)) +
         geom_density_ridges(alpha = 0.7) +
         xlim(-1, 5) +
         geom_vline(xintercept=1) +
-  labs(x = "Win / Loss Ratio", y = NULL, title = "Division Records Over Time", fill = "Division")
+        labs(x = "Win / Loss Ratio", y = NULL, title = "Division Records Over Time", 
+             fill = "Division") +
+        theme_gray()
 ```
 
 
