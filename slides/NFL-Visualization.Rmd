@@ -104,28 +104,83 @@ nfc <- c("NFC East", "NFC North", "NFC South", "NFC West")
 
 nfl <- nfl %>% mutate(div_general = ifelse(division %in% afc, "AFC", "NFC"))
 nfl <- nfl %>% mutate(WLRatio = wins/losses)
+
+# ggplot(top_teams_by_year, aes(x=season, y=WLRatio, fill = team)) +
+#   geom_bar(stat = "identity", position = "dodge", col = "black") +
+#   facet_wrap(~div_general) +
+#   scale_fill_manual(
+#     breaks = c("ATL", "CAR", "CIN", "DAL", "DEN", "GB", "IND", "KC", "LA", "LAC", "MIN", "NE", "NO", "PHI", "PIT", "SEA"),
+#     values = c("darkred", "turquoise2", "darkorange2", "gray77", "black", "darkgreen", "darkblue", "red", "goldenrod2", "powderblue", "purple", "blue", "tan", "aquamarine4", "yellow", "chartreuse1"),
+#     labels = c("Atlanta Falcons", "Carolina Panthers", "Cincinnati Bengals", "Dallas Cowboys", "Denver Broncos", "Green Bay Packers", "Indianapolis Colts", "Kansas City Chiefs", "LA Rams", "LA Chargers", "Minnesota Vikings", "New England Patriots", "New Orleans Saints", "Philadelphia Eagles", "Pittsburgh Steelers", "Seattle Seahawks")) +
+#   theme(legend.position = "bottom") +
+#   labs(
+#     x = NULL,
+#     y = "Win / Loss Ratio",
+#     title = "The Best Performing NFL Teams",
+#     subtitle = "The AFC has more consistent top teams than NFC",
+#     fill = NULL) +
+#   scale_x_continuous(
+#     breaks = c(2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018),
+#     labels = c("'09", "'10", "'11", "'12", "'13", "'14", "'15", "'16", "'17", "'18"))
+
 top_teams_by_year <- nfl %>%
   group_by(season, div_general) %>%
-  select(season, team, WLRatio) %>% top_n(n=1)
+  select(season, team, WLRatio) %>% top_n(n=4)
 
-ggplot(top_teams_by_year, aes(x=season, y=WLRatio, fill = team)) +
-  geom_bar(stat = "identity", position = "dodge", col = "black") +
-  facet_wrap(~div_general) +
-  scale_fill_manual(
-    breaks = c("ATL", "CAR", "CIN", "DAL", "DEN", "GB", "IND", "KC", "LA", "LAC", "MIN", "NE", "NO", "PHI", "PIT", "SEA"),
-    values = c("darkred", "turquoise2", "darkorange2", "gray77", "black", "darkgreen", "darkblue", "red", "goldenrod2", "powderblue", "purple", "blue", "tan", "aquamarine4", "yellow", "chartreuse1"),
-    labels = c("Atlanta Falcons", "Carolina Panthers", "Cincinnati Bengals", "Dallas Cowboys", "Denver Broncos", "Green Bay Packers", "Indianapolis Colts", "Kansas City Chiefs", "LA Rams", "LA Chargers", "Minnesota Vikings", "New England Patriots", "New Orleans Saints", "Philadelphia Eagles", "Pittsburgh Steelers", "Seattle Seahawks")) +
-  theme(legend.position = "bottom") +
-  labs(
-    x = NULL,
-    y = "Win / Loss Ratio",
-    title = "The Best Performing NFL Teams",
-    subtitle = "The AFC has more consistent top teams than NFC",
-    fill = NULL) +
-  scale_x_continuous(
-    breaks = c(2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018),
-    labels = c("'09", "'10", "'11", "'12", "'13", "'14", "'15", "'16", "'17", "'18"))
 
+```
+
+
+```{r, fig.height=6, fig.width=11}
+library(cowplot)
+library(magick)
+
+top_teams_by_year %>%
+    group_by(team, div_general) %>%
+    summarise(n = n()) %>%
+    mutate(n = factor(n, levels = 1:10)) %>%
+    ggplot(aes(x = n)) + 
+        geom_bar(aes(fill = div_general)) + 
+        scale_fill_manual(drop = F, values = c("red", "blue")) +
+        scale_x_discrete(drop=FALSE) +
+        # facet_wrap(~div_general) +
+        labs(title = "Finishes in the top 4 win/loss ratio from 2009-2018") +
+        theme_bw() -> plt
+plt
+
+sv <- 0.09
+jaguars <-  "http://loodibee.com/wp-content/uploads/nfl-jacksonville-jaguars-team-logo-2-768x768.png"
+chargers <- "http://loodibee.com/wp-content/uploads/nfl-los-angeles-chargers-team-logo-2-768x768.png"
+jets <- "http://loodibee.com/wp-content/uploads/nfl-new-york-jets-team-logo-768x768.png"
+raiders <- "http://loodibee.com/wp-content/uploads/nfl-oakland-raiders-team-logo-768x768.png"
+ravens <- "http://loodibee.com/wp-content/uploads/nfl-baltimore-ravens-team-logo-2-768x768.png"
+bengals <- "http://loodibee.com/wp-content/uploads/nfl-cincinnati-bengals-team-logo-768x768.png"
+texans <- "http://loodibee.com/wp-content/uploads/nfl-houston-texans-team-logo-2-768x768.png"
+
+x <- seq(from = -0.405, to = 0.6, by = 0.079)
+
+ggdraw() +
+    draw_plot(plt) +
+    draw_image(jaguars, x = x[1], y = 0.27, scale = sv) +
+    draw_image(chargers, x = x[1], y = 0.13, scale = sv) +
+    draw_image(jets, x = x[1], y = -0.01, scale = sv) +
+    draw_image(raiders, x = x[1], y = -0.15, scale = sv) +
+    draw_image(chargers, x = x[1], y = -0.29, scale = sv) +
+    draw_image(ravens, x = x[2], y = -0.29, scale = sv) +
+    draw_image(bengals, x = x[3], y = -0.15, scale = sv) +
+    draw_image(texans, x = x[3], y = -0.29, scale = sv) +
+    draw_image(texans, x = x[4], y = -0.29, scale = sv) +
+    draw_image(texans, x = x[5], y = -0.29, scale = sv) +
+    draw_image(texans, x = x[6], y = -0.29, scale = sv) +
+    draw_image(texans, x = x[10], y = -0.29, scale = sv)
+```
+
+```{r}
+top_teams_by_year %>%
+    group_by(team, div_general) %>%
+    summarise(n = n()) %>%
+    filter(div_general == "AFC") %>%
+    arrange(n)
 ```
 
 ***
@@ -172,7 +227,20 @@ nfl <- nfl %>% mutate(record = ifelse(WLRatio > 2, "Double Positive", ifelse(WLR
 
 nfl$record <- factor(nfl$record, levels = c("Double Positive", "Positive", "Negative"))
 
-ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record)) + geom_point() + scale_color_manual(breaks = c("Double Positive", "Positive", "Negative"), values = c("green", "gold", "red")) + labs(title = "Offense and Defense Strength", subtitle = "Competitive teams are typically good at both", x = "Total Defensive Yards Allowed in Season", y = "Total Offensive Yards Gained in Season", col = "Win Record")
+ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record,
+                label=team)) +
+    geom_point() + 
+    scale_color_manual(breaks = c("Double Positive", "Positive", "Negative"), 
+                       values = c("green", "gold", "red")) + 
+    labs(title = "Offense and Defense Strength", 
+         subtitle = "Competitive teams are typically good at both", 
+         x = "Total Defensive Yards Allowed in Season", 
+         y = "Total Offensive Yards Gained in Season", col = "Win Record") -> p
+
+
+library(plotly)
+head(nfl)
+ggplotly(p)
 ```
 
 
@@ -183,7 +251,15 @@ ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = recor
 ## Question 4: Consistency
 ***
 ```{r, echo = FALSE}
-ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) + geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + xlab(NULL) + ylab("Win / Loss Ratio") + labs(title = "The Top Teams Aren't Always Consistent", subtitle = "The NFL appears very competitive, with decent upset chances", fill = "Division") + geom_hline(yintercept = 1, linetype = "dashed", color = "red")
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) + 
+    geom_boxplot() + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab(NULL) + 
+    ylab("Win / Loss Ratio") + 
+    labs(title = "The Top Teams Aren't Always Consistent", 
+         subtitle = "The NFL appears very competitive, with decent upset chances", 
+         fill = "Division") + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "red")
 ```
 
 # Conclusions
