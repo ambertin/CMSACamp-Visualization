@@ -111,7 +111,6 @@ nfl %>% group_by(div_general, team) %>%
   arrange(desc(mean_WL)) %>%
   head(10)
 
-```
 
 ```{r}
 #top10 <- c("NE", "GB", "CAR", "LA", "NO", "LAC", "PIT", "IND", "DEN", "ATL")
