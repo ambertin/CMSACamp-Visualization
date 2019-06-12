@@ -20,7 +20,6 @@ output:
 - Historical consistency of teams -- how likely are upsets?
 
 
-
 ***
 
 # Data
@@ -34,7 +33,7 @@ output:
 - season
 - division
 
-### Outcome variables
+### Outcome variables:
 
 - wins/losses/ties
 - points scored
@@ -67,14 +66,19 @@ output:
 
 - more general divisions (removing north/south/east/west)
 - win / loss ratio (wins / losses per season)
-- win record (double positive, positive, negative) based on win / loss ratio
-- avg points scored per game
-- avg points allowed per game
+- win record (double positive, positive, negative, double negative)
 - total offensive yards gained
 - total defensive yards allowed
 
 ***
+
 ## Question 1: Divisions
+
+
+```{r, echo = FALSE}
+knitr::include_graphics("AFC-NFC.png")
+```
+
 
 - 2 Major Divisions:
     - National Football Conference (NFC)
@@ -125,10 +129,13 @@ nfl <- nfl %>% mutate(WLRatio = wins/losses)
 
 top_teams_by_year <- nfl %>%
   group_by(season, div_general) %>%
-  select(season, team, WLRatio) %>% top_n(n=4)
+  select(season, team, WLRatio) %>% top_n(n=1)
 
-
-```
+ggplot(top_teams_by_year, aes(x=season, y=WLRatio, fill = team)) + geom_bar(stat = "identity", position = "dodge", col = "black") +
+  facet_wrap(~div_general) +
+  scale_fill_manual(breaks = c("ATL", "CAR", "CIN", "DAL", "DEN", "GB", "IND", "KC", "LA", "LAC", "MIN", "NE", "NO", "PHI", "PIT", "SEA"),
+                    values = c("darkred", "turquoise2", "darkorange2", "gray77", "black", "darkgreen", "darkblue", "red", "goldenrod2", "powderblue", "purple", "blue", "tan", "aquamarine4", "yellow", "chartreuse1"),
+                   labels = c("Atlanta Falcons", "Carolina Panthers", "Cincinnati Bengals", "Dallas Cowboys", "Denver Broncos", "Green Bay Packers", "Indianapolis Colts", "Kansas City Chiefs", "LA Rams", "LA Chargers", "Minnesota Vikings", "New England Patriots", "New Orleans Saints", "Philadelphia Eagles", "Pittsburgh Steelers", "Seattle Seahawks")) + theme(legend.position = "bottom") + labs(x = NULL, y = "Win / Loss Ratio", title = "The Best Performing NFL Teams", subtitle = "The AFC has more consistent top teams than NFC", fill = NULL) + scale_x_continuous(breaks = c(2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018), labels = c("'09", "'10", "'11", "'12", "'13", "'14", "'15", "'16", "'17", "'18"))
 
 
 ```{r, fig.height=6, fig.width=11}
@@ -139,8 +146,8 @@ top_teams_by_year %>%
     group_by(team, div_general) %>%
     summarise(n = n()) %>%
     mutate(n = factor(n, levels = 1:10)) %>%
-    ggplot(aes(x = n)) + 
-        geom_bar(aes(fill = div_general)) + 
+    ggplot(aes(x = n)) +
+        geom_bar(aes(fill = div_general)) +
         scale_fill_manual(drop = F, values = c("red", "blue")) +
         scale_x_discrete(drop=FALSE) +
         # facet_wrap(~div_general) +
@@ -185,14 +192,32 @@ top_teams_by_year %>%
 
 ***
 
-## Takeaways - Divisions
+# Takeaways - Divisions
+
+### Competitiveness over time
+
+
+### Competitiveness across divisions
+
+
 
 ***
 
 ## Question 2: Pass/Run
 
 
+Can teams remain competitive with different passing/running strategies?
+
+Does either passing or running dominate among the most competitive teams, or are play styles similar across all teams?
+
+
+```{r, echo = FALSE}
+knitr::include_graphics("running.jpeg")
+```
+
 ***
+
+## Observations: Pass vs Run
 
 ```{r, echo = FALSE}
 nfl_passrun <- nfl %>%
@@ -214,57 +239,188 @@ nfl_passrun %>% gather(key = "type", value = "pct", pass, run) %>%
 
 
 ***
-## Takeaways - Passing vs Running
-***
 
 ## Question 3: Offense/Defense
-***
+
+Are offense and defense equally important for a team to be competitive?
+
+What separates the good teams from the bad teams?
+
 
 ```{r, echo = FALSE}
-nfl <- nfl %>% mutate(record = ifelse(WLRatio > 2, "Double Positive", ifelse(WLRatio >= 1, "Positive", "Negative")),
+knitr::include_graphics("positions.png")
+```
+
+
+
+***
+### Observations: Offense/Defense
+
+-  There are very few teams that only have a good offense OR defense
+
+-  Teams that perform well appear to be good at both
+    - High scoring
+    - Don't allow many points
+
+
+```{r, echo = FALSE, message = FALSE}
+library(plotly)
+nfl <- nfl %>% mutate(record = ifelse(WLRatio > 2, "Double Positive", ifelse(WLRatio >= 1, "Positive", ifelse(WLRatio >= 0.5, "Negative", "Double Negative"))),
                       total_offensive_gained = run_off_total_yards_gained + pass_off_total_yards_gained,
                       total_defensive_allowed = run_def_total_yards_allowed + pass_def_total_yards_allowed)
 
-nfl$record <- factor(nfl$record, levels = c("Double Positive", "Positive", "Negative"))
+nfl$record <- factor(nfl$record, levels = c("Double Positive", "Positive", "Negative", "Double Negative"))
+
+ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record, label = team)) + geom_point() + scale_color_manual(breaks = c("Double Positive", "Positive", "Negative", "Double Negative"), values = c("green", "gold", "darkorange1", "red")) + labs(x = "Total Defensive Yards Allowed in Season", y = "Total Offensive Yards Gained in Season", col = "Win Record") + theme(legend.position = "bottom") -> p
+ggplotly(p)
+```    
+
+***    
+- What separates a bad team from the worst teams?
+    - The *worst* teams have very poor offenses
+    - A good defense does not guarantee that a team is competitive
+
+```{r, echo = FALSE, message = FALSE}
+ggplotly(p)
+```
+
+
+
+***    
+
+- What separates a good team from a bad team?
+    - Worse *defensive* performance
+    - Offense is important, but you can't neglect your defense!
+
+```{r, echo = FALSE, message = FALSE}
+ggplotly(p)
+```
+
+***
+
 
 ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record,
                 label=team)) +
-    geom_point() + 
-    scale_color_manual(breaks = c("Double Positive", "Positive", "Negative"), 
-                       values = c("green", "gold", "red")) + 
-    labs(title = "Offense and Defense Strength", 
-         subtitle = "Competitive teams are typically good at both", 
-         x = "Total Defensive Yards Allowed in Season", 
+    geom_point() +
+    scale_color_manual(breaks = c("Double Positive", "Positive", "Negative"),
+                       values = c("green", "gold", "red")) +
+    labs(title = "Offense and Defense Strength",
+         subtitle = "Competitive teams are typically good at both",
+         x = "Total Defensive Yards Allowed in Season",
          y = "Total Offensive Yards Gained in Season", col = "Win Record") -> p
 
 
 library(plotly)
 head(nfl)
+
+- What separates a good team from a great team?
+    - Sometimes defensive improvement, sometimes offensive
+    - **Big Idea:** You can remain competitive with different styles of play!
+
+```{r, echo = FALSE, message = FALSE}
+
 ggplotly(p)
 ```
 
 
-## Takeaways - Offense vs Defense
 ***
-
 
 ## Question 4: Consistency
+
+- Are the top teams consistently good?
+
+- How much variation is there between teams across the years?
+
+- Is the NFL competitive in terms of upset possibilities?
+
 ***
-```{r, echo = FALSE}
-ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) + 
-    geom_boxplot() + 
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-    xlab(NULL) + 
-    ylab("Win / Loss Ratio") + 
-    labs(title = "The Top Teams Aren't Always Consistent", 
-         subtitle = "The NFL appears very competitive, with decent upset chances", 
-         fill = "Division") + 
-    geom_hline(yintercept = 1, linetype = "dashed", color = "red")
+
+## Graphing consistency
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  xlab(NULL) +
+  ylab("Win / Loss Ratio") +
+  labs(
+    title = "The Top Teams Aren't Always Consistent",
+    subtitle = "The NFL appears very competitive, with decent upset chances",
+    fill = "Division") +
+  geom_hline(
+    yintercept = 1,
+    linetype = "dashed",
+    color = "red")
 ```
 
+***
+
+```{r, echo = FALSE}
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) +
+    geom_boxplot() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    xlab(NULL) +
+    ylab("Win / Loss Ratio") +
+    labs(title = "The Top Teams Aren't Always Consistent",
+         subtitle = "The NFL appears very competitive, with decent upset chances",
+         fill = "Division") +
+    geom_hline(yintercept = 1, linetype = "dashed", color = "red")
+
+### Zooming in:
+
+- A few teams that are consistently bad
+- Most decent to good teams have significant performance variation
+- Notable outliers: Carolina, Green Bay, Indianapolis
+- Outliers + variation = chance for upsets
+- Divisions seem somewhat balanced in terms of skill
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  xlab(NULL) +
+  ylab("Win / Loss Ratio") +
+  labs(
+    title = "The Top Teams Aren't Always Consistent",
+    subtitle = "The NFL appears very competitive, with decent upset chances",
+    fill = "Division") +
+  geom_hline(
+    yintercept = 1,
+    linetype = "dashed",
+    color = "red") +
+  ylim(0,4.5)
+
+```
+
+***
 # Conclusions
+
+- The NFL is very consistent, and has remained so over time
+- There are only a few teams that perform extraordinarily well
+    - These are not the same every time
+- The best teams are not unbeatable
+    - Outliers show a chance for upsets
+- The best teams pass more than average, but teams that run more can also succeed
+- Different balances of offense and defense can lead to success. Not only one strategy!
+
 ***
+
 # Limitations
+
+- Passing vs Running and Offense vs Defense stats would be more informative if per-game, rather than per-season
+    - Allow much more direct comparisons between yards and points
+    - Averaging across the season is less accurate
+
+- Only have data since 2009. Older data might look different.
+
+- In addition to win/loss, would have liked overall rank in season
+
+
 ***
+
 # Future Questions
+
+- Can we determine the strength of the relationship between offense/defense and win probabilities?
+    - Does one have a stronger mathematical relationship to chances of winning?
+
 ***
