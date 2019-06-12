@@ -8,6 +8,30 @@ output:
     incremental: true
 ---
 
+```{r, echo = FALSE}
+
+# LOAD LIBRARIES
+library(readr)
+library(tidyverse)
+library(gridExtra)
+library(ggridges)
+library(ggthemes)
+library(plotly)
+library(cowplot)
+library(magick)
+
+# LOAD DATA INTO FILE
+nfl <- read_csv("nfl_teams_season_summary.csv")
+
+# MUTATE VARIABLES
+afc <- c("AFC East", "AFC North", "AFC South", "AFC West")
+nfc <- c("NFC East", "NFC North", "NFC South", "NFC West")
+
+nfl <- nfl %>% mutate(div_general = ifelse(division %in% afc, "AFC", "NFC"))
+nfl <- nfl %>% mutate(WLRatio = wins/losses)
+```
+
+
 # Introduction
 
 > - NFL summary data --> 2009 - 2018
@@ -83,8 +107,8 @@ knitr::include_graphics("AFC-NFC.png")
     - National Football Conference (NFC)
     - American Football Conference (AFC)
 
-- Is either division becoming more competitive over time (fewer outlier teams)?
 - Does either division appear to have clear dominant teams, or do a variety of teams take the spotlight in different years?
+- Is either division becoming more competitive over time (fewer outlier teams)?
 
 ***
 
