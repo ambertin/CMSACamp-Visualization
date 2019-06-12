@@ -94,9 +94,10 @@ nfl %>%
     mutate(wl_ratio = wins/losses) %>%
     ggplot(aes(x=wl_ratio, y=as.factor(season))) +
         geom_density_ridges() +
-        xlim(-1, 5) +
         geom_vline(xintercept=1) +
-        theme_pander()
+        facet_wrap(~division2) +
+        xlim(-1, 5) +
+        theme_ridges()
 
 grid.arrange(wins.nfc.plt, wins.afc.plt, nrow = 1)
 ```

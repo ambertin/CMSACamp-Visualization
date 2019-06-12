@@ -120,6 +120,25 @@ nfl %>%
 ```{r, echo = FALSE, message = FALSE}
 
 nfl <- nfl %>% mutate(WLRatio = wins/losses)
+
+# ggplot(top_teams_by_year, aes(x=season, y=WLRatio, fill = team)) +
+#   geom_bar(stat = "identity", position = "dodge", col = "black") +
+#   facet_wrap(~div_general) +
+#   scale_fill_manual(
+#     breaks = c("ATL", "CAR", "CIN", "DAL", "DEN", "GB", "IND", "KC", "LA", "LAC", "MIN", "NE", "NO", "PHI", "PIT", "SEA"),
+#     values = c("darkred", "turquoise2", "darkorange2", "gray77", "black", "darkgreen", "darkblue", "red", "goldenrod2", "powderblue", "purple", "blue", "tan", "aquamarine4", "yellow", "chartreuse1"),
+#     labels = c("Atlanta Falcons", "Carolina Panthers", "Cincinnati Bengals", "Dallas Cowboys", "Denver Broncos", "Green Bay Packers", "Indianapolis Colts", "Kansas City Chiefs", "LA Rams", "LA Chargers", "Minnesota Vikings", "New England Patriots", "New Orleans Saints", "Philadelphia Eagles", "Pittsburgh Steelers", "Seattle Seahawks")) +
+#   theme(legend.position = "bottom") +
+#   labs(
+#     x = NULL,
+#     y = "Win / Loss Ratio",
+#     title = "The Best Performing NFL Teams",
+#     subtitle = "The AFC has more consistent top teams than NFC",
+#     fill = NULL) +
+#   scale_x_continuous(
+#     breaks = c(2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018),
+#     labels = c("'09", "'10", "'11", "'12", "'13", "'14", "'15", "'16", "'17", "'18"))
+
 top_teams_by_year <- nfl %>%
   group_by(season, div_general) %>%
   select(season, team, WLRatio) %>% top_n(n=1)
@@ -130,6 +149,58 @@ ggplot(top_teams_by_year, aes(x=season, y=WLRatio, fill = team)) + geom_bar(stat
                     values = c("darkred", "turquoise2", "darkorange2", "gray77", "black", "darkgreen", "darkblue", "red", "goldenrod2", "powderblue", "purple", "blue", "tan", "aquamarine4", "yellow", "chartreuse1"),
                    labels = c("Atlanta Falcons", "Carolina Panthers", "Cincinnati Bengals", "Dallas Cowboys", "Denver Broncos", "Green Bay Packers", "Indianapolis Colts", "Kansas City Chiefs", "LA Rams", "LA Chargers", "Minnesota Vikings", "New England Patriots", "New Orleans Saints", "Philadelphia Eagles", "Pittsburgh Steelers", "Seattle Seahawks")) + theme(legend.position = "bottom") + labs(x = NULL, y = "Win / Loss Ratio", title = "The Best Performing NFL Teams", subtitle = "The AFC has more consistent top teams than NFC", fill = NULL) + scale_x_continuous(breaks = c(2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018), labels = c("'09", "'10", "'11", "'12", "'13", "'14", "'15", "'16", "'17", "'18"))
 
+```
+
+```{r, fig.height=6, fig.width=11}
+library(cowplot)
+library(magick)
+
+top_teams_by_year %>%
+    group_by(team, div_general) %>%
+    summarise(n = n()) %>%
+    mutate(n = factor(n, levels = 1:10)) %>%
+    ggplot(aes(x = n)) +
+        geom_bar(aes(fill = div_general)) +
+        scale_fill_manual(drop = F, values = c("red", "blue")) +
+        scale_x_discrete(drop=FALSE) +
+        # facet_wrap(~div_general) +
+        labs(title = "Finishes in the top 4 win/loss ratio from 2009-2018") +
+        theme_bw() -> plt
+plt
+
+sv <- 0.09
+jaguars <-  "http://loodibee.com/wp-content/uploads/nfl-jacksonville-jaguars-team-logo-2-768x768.png"
+chargers <- "http://loodibee.com/wp-content/uploads/nfl-los-angeles-chargers-team-logo-2-768x768.png"
+jets <- "http://loodibee.com/wp-content/uploads/nfl-new-york-jets-team-logo-768x768.png"
+raiders <- "http://loodibee.com/wp-content/uploads/nfl-oakland-raiders-team-logo-768x768.png"
+ravens <- "http://loodibee.com/wp-content/uploads/nfl-baltimore-ravens-team-logo-2-768x768.png"
+bengals <- "http://loodibee.com/wp-content/uploads/nfl-cincinnati-bengals-team-logo-768x768.png"
+texans <- "http://loodibee.com/wp-content/uploads/nfl-houston-texans-team-logo-2-768x768.png"
+
+x <- seq(from = -0.405, to = 0.6, by = 0.079)
+
+ggdraw() +
+    draw_plot(plt) +
+    draw_image(jaguars, x = x[1], y = 0.27, scale = sv) +
+    draw_image(chargers, x = x[1], y = 0.13, scale = sv) +
+    draw_image(jets, x = x[1], y = -0.01, scale = sv) +
+    draw_image(raiders, x = x[1], y = -0.15, scale = sv) +
+    draw_image(chargers, x = x[1], y = -0.29, scale = sv) +
+    draw_image(ravens, x = x[2], y = -0.29, scale = sv) +
+    draw_image(bengals, x = x[3], y = -0.15, scale = sv) +
+    draw_image(texans, x = x[3], y = -0.29, scale = sv) +
+    draw_image(texans, x = x[4], y = -0.29, scale = sv) +
+    draw_image(texans, x = x[5], y = -0.29, scale = sv) +
+    draw_image(texans, x = x[6], y = -0.29, scale = sv) +
+    draw_image(texans, x = x[10], y = -0.29, scale = sv)
+```
+
+```{r}
+top_teams_by_year %>%
+    group_by(team, div_general) %>%
+    summarise(n = n()) %>%
+    filter(div_general == "AFC") %>%
+    arrange(n)
 ```
 
 ***
@@ -258,6 +329,7 @@ knitr::include_graphics("positions.png")
     
     
 ```{r, echo = FALSE, message = FALSE, out.height = '80%'}
+
 library(plotly)
 nfl <- nfl %>% mutate(record = ifelse(WLRatio > 2, "Double Positive", ifelse(WLRatio >= 1, "Positive", ifelse(WLRatio >= 0.5, "Negative", "Double Negative"))),
                       total_offensive_gained = run_off_total_yards_gained + pass_off_total_yards_gained,
@@ -268,39 +340,98 @@ nfl$record <- factor(nfl$record, levels = c("Double Positive", "Positive", "Nega
 ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record, label = team)) + geom_point() + scale_color_manual(breaks = c("Double Positive", "Positive", "Negative", "Double Negative"), values = c("green", "gold", "darkorange1", "red")) + labs(x = "Total Defensive Yards Allowed in Season", y = "Total Offensive Yards Gained in Season", col = "Win Record") + theme(legend.position = "bottom") -> p
 ggplotly(p)
 ```    
-    
+
 ***    
 - What separates a bad team from the worst teams?
     - The *worst* teams have very poor offenses
     - A good defense does not guarantee that a team is competitive
-    
+
 ```{r, echo = FALSE, message = FALSE}
 ggplotly(p)
 ```
-    
-    
-    
+
+
+
 ***    
-    
+
 - What separates a good team from a bad team?
     - Worse *defensive* performance
-    - Offense is important, but you can't neglect your defense! 
-    
+    - Offense is important, but you can't neglect your defense!
+
 ```{r, echo = FALSE, message = FALSE}
 ggplotly(p)
 ```
-    
+
 ***
 
 - What separates a good team from a great team?
     - Sometimes defensive improvement, sometimes offensive
     - **Big Idea:** You can remain competitive with different styles of play!
-    
+
 ```{r, echo = FALSE, message = FALSE}
+
 ggplotly(p)
 ```
 
-    
+
+***
+
+## Question 4: Consistency
+
+- Are the top teams consistently good?
+
+- How much variation is there between teams across the years?
+
+- Is the NFL competitive in terms of upset possibilities?
+
+***
+
+## Graphing consistency
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  xlab(NULL) +
+  ylab("Win / Loss Ratio") +
+  labs(
+    title = "The Top Teams Aren't Always Consistent",
+    subtitle = "The NFL appears very competitive, with decent upset chances",
+    fill = "Division") +
+  geom_hline(
+    yintercept = 1,
+    linetype = "dashed",
+    color = "red")
+```
+
+***
+
+### Zooming in:
+
+- A few teams that are consistently bad
+- Most decent to good teams have significant performance variation
+- Notable outliers: Carolina, Green Bay, Indianapolis
+- Outliers + variation = chance for upsets
+- Divisions seem somewhat balanced in terms of skill
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(nfl, aes(x=reorder(team, WLRatio, FUN = median), y = WLRatio, fill = div_general)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  xlab(NULL) +
+  ylab("Win / Loss Ratio") +
+  labs(
+    title = "The Top Teams Aren't Always Consistent",
+    subtitle = "The NFL appears very competitive, with decent upset chances",
+    fill = "Division") +
+  geom_hline(
+    yintercept = 1,
+    linetype = "dashed",
+    color = "red") +
+  ylim(0,4.5)
+
+```
+
 ***
 
 # Conclusions
@@ -320,7 +451,7 @@ ggplotly(p)
 - Passing vs Running and Offense vs Defense stats would be more informative if per-game, rather than per-season
     - Allow much more direct comparisons between yards and points
     - Averaging across the season is less accurate
-    
+
 - Only have data since 2009. Older data might look different.
 
 - In addition to win/loss, would have liked overall rank in season
