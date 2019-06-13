@@ -26,6 +26,8 @@ suppressMessages(library(ggthemes))
 suppressMessages(library(plotly))
 suppressMessages(library(cowplot))
 suppressMessages(library(magick))
+suppressMessages(library(DT))
+suppressMessages(library(pander))
 
 # LOAD DATA INTO FILE
 suppressMessages(nfl <- read_csv("nfl_teams_season_summary.csv"))
@@ -42,6 +44,17 @@ nfl_passrun <- nfl %>%
 
 top10 <- c("NE", "GB", "CAR", "LA", "NO", "LAC", "PIT", "IND", "DEN", "ATL")
 nfl_passrun <- nfl_passrun %>% filter(team %in% top10) %>% select(team, season, pass, run)
+
+suppressMessages(
+top_teams_by_year <- nfl %>%
+    group_by(season) %>%
+    select(season, team, div_general,WLRatio) %>% 
+    top_n(n=4) 
+)
+top_teams_by_year_summary <- top_teams_by_year %>%
+    group_by(div_general) %>%
+    summarise(n = n())
+names(top_teams_by_year_summary) <- c("Division", "Number of Teams")
 ```
 
 
@@ -120,8 +133,8 @@ knitr::include_graphics("AFC-NFC.png")
     - National Football Conference (NFC)
     - American Football Conference (AFC)
 
-- Does either division appear to have clear dominant teams, or do a variety of teams take the spotlight in different years?
 - Is either division becoming more competitive over time (fewer outlier teams)?
+- Does either division appear to have clear dominant teams, or do a variety of teams take the spotlight in different years?
 
 ***
 
@@ -130,19 +143,31 @@ knitr::include_graphics("AFC-NFC.png")
     - Patriots for the AFC
 - But overall, not that much difference over time or difference between the divisions.
 
-```{r, echo = FALSE, message = FALSE, fig.height = 4}
+```{r, echo = FALSE, message = FALSE, fig.height = 4, fig.align="center"}
 nfl %>%
     ggplot(aes(x=WLRatio, y=as.factor(season), fill = div_general)) +
         geom_density_ridges(alpha = 0.7) +
-        geom_vline(xintercept=1) +
-        labs(x = "Win / Loss Ratio", y = NULL, title = "Division Records Over Time", 
+        geom_vline(xintercept=1, linetype = "dashed") +
+        labs(x = "Win/Loss Ratio", y = NULL, title = "Team Records Over Time", 
              fill = "Division") +
         theme_gray()
 ```
 
 ***
 
-PLOT 2: TODO
+- Let's look more carefully at what's going on at the "top" of that last graph.
+- Take the top 4 each year (by W/L ratio), is there a division that wins out?
+
+<p class="incremental"> 
+```{r, echo = FALSE, message = FALSE}
+top_teams_by_year_summary %>% 
+  ggplot(aes(x="", y=`Number of Teams`, fill=Division)) +
+    geom_bar(width = 1, stat = "identity") +
+    coord_polar("y", start=0) +
+    theme_void() +
+    labs(title = "Who's winning? Percentage of teams in the top four")
+```
+</p>
 
 ***
 
@@ -254,7 +279,7 @@ ggplotly(p3)
 
 
 ```{r, echo = FALSE}
-knitr::include_graphics("positions.png")
+knitr::include_graphics("https://www.telegraph.co.uk/content/dam/american-football/2018/10/05/TELEMMGLPICT000171842098_trans_NvBQzQNjv4BqI3FCE1f7boN3_RkHZJyAaYRkJANvUDXYXD1hoFS_yMY.jpeg?imwidth=480")
 ```
 
 ***
