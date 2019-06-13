@@ -1,18 +1,12 @@
 ---
-title: "NFL Visualization Project"
+title: "Competition in the NFL: </br> The Patriots are actually very good at football"
 author: "Audrey & Nathan"
-date: 6/14/19
+date: ""
 
 output:
   slidy_presentation:
     incremental: true
 ---
-
-<!--
-TODO:
-  * Try log transformation for wlratio over time.
-  * Fix logos
--->
 
 
 ```{r, echo = FALSE, messages = FALSE, results='hide'}
@@ -55,19 +49,22 @@ top_teams_by_year_summary <- top_teams_by_year %>%
     group_by(div_general) %>%
     summarise(n = n())
 names(top_teams_by_year_summary) <- c("Division", "Number of Teams")
+
+dim(nfl)
 ```
 
 
 # Introduction
 
 > - NFL summary data --> 2009 - 2018
+- 26 variables and 320 observations (10 years of data on 32 teams)
 
 ### Focus: "Competitiveness" across the NFL
 
 - Distributions of team success over time
 - Differences across divisions (AFC vs NFC)
 - Similarities in play styles (pass/run and offense/defense)
-- Historical consistency of teams -- how likely are upsets?
+- Historical consistency of teams -- how likely are rank swings?
 
 
 ***
@@ -100,7 +97,7 @@ names(top_teams_by_year_summary) <- c("Division", "Number of Teams")
 
 - expected points
 
-- defensive points made
+- defensive points allowed
 
 - expected defensive points
 
@@ -117,8 +114,7 @@ names(top_teams_by_year_summary) <- c("Division", "Number of Teams")
 - more general divisions (removing north/south/east/west)
 - win / loss ratio (wins / losses per season)
 - win record (double positive, positive, negative, double negative)
-- total offensive yards gained
-- total defensive yards allowed
+- total offensive and defensive yards
 
 ***
 
@@ -134,7 +130,7 @@ knitr::include_graphics("AFC-NFC.png")
     - American Football Conference (AFC)
 
 - Is either division becoming more competitive over time (fewer outlier teams)?
-- Does either division appear to have clear dominant teams, or do a variety of teams take the spotlight in different years?
+- Is either division dominant at the top levels?
 
 ***
 
@@ -176,7 +172,7 @@ top_teams_by_year_summary %>%
 
 - Are the top teams consistently good?
 - How much variation is there between teams across the years?
-- Is the NFL competitive in terms of upset possibilities?
+- Is the NFL competitive in terms of rankings movement across seasons?
 
 
 ***
@@ -207,7 +203,7 @@ ggplotly(p2)
 ***
 
 - A few teams that are consistently bad
-- Outliers + variation = chance for upsets
+- Outliers + variation = chance for swings between seasons
 - Divisions seem somewhat balanced in terms of skill
 
 ```{r, echo = FALSE, warning = FALSE}
@@ -238,7 +234,7 @@ ggplotly(p2.2)
 
 
 - Can teams remain competitive with different passing/running strategies?
-- Does either passing or running dominate among the most competitive teams, or are play styles similar across all teams?
+- Are play styles similar across all teams?
 
 
 ```{r, echo = FALSE}
@@ -248,9 +244,11 @@ knitr::include_graphics("running.jpeg")
 ***
 
 - The top teams pass slightly more than the league average
+    - Probably overall good for the "health" of the game
+    - Passing plays are more exciting and allow for bigger swings.
     - Carolina's weird.
-- However, the deviations aren't that large. The league tends to earn about a third of its yards through running.
-    - Probably overall good for the "health" of the game; passing plays are more exciting and allow for bigger swings.
+- The deviations aren't large. 
+
 
 ```{r, echo = FALSE, message = FALSE, out.height = '80%'}
 nfl_passrun %>% gather(key = "type", value = "pct", pass, run) %>%
@@ -286,12 +284,11 @@ knitr::include_graphics("https://www.telegraph.co.uk/content/dam/american-footba
 
 -  There are very few teams that only have a good offense OR defense
 
--  Teams that perform well appear to be good at both
-    - High scoring
-    - Don't allow many points
+-  The gradient is as we expect
+    - Being worse at either typically hurts records
     
     
-```{r, echo = FALSE, message = FALSE, out.height = '80%'}
+```{r, echo = FALSE, message = FALSE, out.height = '70%'}
 
 library(plotly)
 nfl <- nfl %>% mutate(record = ifelse(WLRatio > 2, "Double Positive", ifelse(WLRatio >= 1, "Positive", ifelse(WLRatio >= 0.5, "Negative", "Double Negative"))),
@@ -300,24 +297,19 @@ nfl <- nfl %>% mutate(record = ifelse(WLRatio > 2, "Double Positive", ifelse(WLR
 
 nfl$record <- factor(nfl$record, levels = c("Double Positive", "Positive", "Negative", "Double Negative"))
 
-ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record, label = team)) + geom_point() + scale_color_manual(breaks = c("Double Positive", "Positive", "Negative", "Double Negative"), values = c("green", "gold", "darkorange1", "red")) + labs(x = "Total Defensive Yards Allowed in Season", y = "Total Offensive Yards Gained in Season", col = "Win Record") + theme(legend.position = "bottom") -> p
+ggplot(nfl, aes(x=total_defensive_allowed, y=total_offensive_gained, col = record, label = team)) + 
+  geom_point() + 
+  scale_color_manual(breaks = c("Double Positive", "Positive", "Negative", "Double Negative"), values = c("green", "gold", "darkorange1", "red")) + 
+  labs(x = "Total Defensive Yards Allowed in Season", 
+       y = "Total Offensive Yards Gained in Season", 
+       col = "Win Record",
+       title = "Offense vs. Defense for Team Strength") + 
+  theme(legend.position = "bottom") -> p
 ggplotly(p)
 ```    
 
 ***    
-- What separates a bad team from the worst teams?
-    - The *worst* teams have very poor offenses
-    - A good defense does not guarantee that a team is competitive
-    
-&nbsp;
 
-```{r, echo = FALSE, message = FALSE, out.height = '80%'}
-ggplotly(p)
-```
-
-
-
-***    
 
 - What separates a good team from a bad team?
     - Worse *defensive* performance
@@ -332,7 +324,7 @@ ggplotly(p)
 ***
 
 - What separates a good team from a great team?
-    - Sometimes defensive improvement, sometimes offensive
+    - Sometimes defensive improvement, typically offensive
     - **Big Idea:** You can remain competitive with different styles of play!
     
 &nbsp;
@@ -351,7 +343,6 @@ ggplotly(p)
 - There are only a few teams that perform extraordinarily well
     - These are typically not the same every season (except New England of course...)
 - The best teams are not unbeatable
-    - Outliers and high variance show a chance for upsets
 - The best teams pass more than average, but teams that run more can also succeed
 - Different balances of offense and defense can lead to success. Not only one strategy!
 
@@ -359,21 +350,20 @@ ggplotly(p)
 
 # Limitations
 
-- Passing vs Running and Offense vs Defense stats would be more informative if per-game, rather than per-season
-    - Allow much more direct comparisons between yards and points
-    - Averaging across the season is less accurate
+- Passing vs Running and Offense vs Defense stats would be more informative if per-game
+    - More information on team-level match-ups
 
 - Only have data since 2009. Older data might look different.
 
 - In addition to win/loss, would have liked overall rank in season
-    - Also, as with offense/defense analysis, game level win/loss data could provide more insight into how teams match up.
+    - More direct way of comparing teams
 
 
 ***
 
 # Future Questions
 
-- Can we determine the strength of the relationship between offense/defense and win probabilities?
+- What is the relationship between offense/defense and win probabilities?
     - Does one have a stronger mathematical relationship to chances of winning?
     
 - How does game location (home vs. away) factor into competitiveness of the game?
